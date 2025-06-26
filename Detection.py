@@ -1,0 +1,1 @@
+# This module is supposed to detect the current business environment, market state and declining performance

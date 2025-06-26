@@ -18,8 +18,48 @@ By eliminating the need to manually interpret overwhelming volumes of operationa
 Project Design:
 
 Retail_Data.db:
-Data Tables : Monthly Data, Customer Data
+Data Tables : business_metrics, product_metrics
+
+business_metrics schema : CREAT TABLE business_metrics (month TEXT PRIMARY KEY, -- format: 'YYYY-MM', e.g. '2025-06',
+                                                        profits FLOAT,
+                                                        costs FLOAT,
+                                                        economy FLOAT,
+                                                        operational_accidents INTEGER,
+                                                        avg_basket_size FLOAT,
+                                                        repeat_customers FLOAT CHECK (repeat_customers BETWEEN 0 AND 100),
+                                                        new_customers FLOAT CHECK (new_customers BETWEEN 0 AND 100),
+                                                        sales_items INTEGER,
+                                                        sales_revenue FLOAT);
+
+
+product_metrics schema : CREATE TABLE product_metrics (
+                                                        month TEXT,
+                                                        product_name TEXT,
+                                                        products_sold INTEGER,
+                                                        price FLOAT,
+                                                        stock_life INTEGER,
+                                                        profit_share FLOAT,
+                                                        PRIMARY KEY (month, product_name),
+                                                        FOREIGN KEY (month) REFERENCES business_metrics(month)
+                                                    );
+
+
 Labelled Data : Data is cleanly labelled
+
+Labelled Data Schema : CREATE TABLE labelled_data (
+                                                    month TEXT PRIMARY KEY,
+                                                    profits TEXT CHECK (profits IN ('high', 'low', 'stable')),
+                                                    sales TEXT CHECK (sales IN ('high', 'low', 'stable')),
+                                                    costs TEXT CHECK (costs IN ('high', 'low', 'stable')),
+                                                    competition TEXT CHECK (competition IN ('high', 'low', 'stable')),
+                                                    pricing TEXT CHECK (pricing IN ('high', 'low', 'stable')),
+                                                    economy TEXT CHECK (economy IN ('good', 'bad', 'neutral')),
+                                                    operational_efficiency TEXT CHECK (operational_efficiency IN ('smooth', 'rough', 'expected')),
+                                                    stocking TEXT CHECK (stocking IN ('abundant', 'short', 'balanced')),
+                                                    product_popularity TEXT CHECK (product_popularity IN ('climbing', 'declining', 'stable')),
+                                                    season TEXT CHECK (season IN ('festive', 'off', 'usual')),
+                                                    FOREIGN KEY (month) REFERENCES business_metrics(month)
+                                                    );
 
 
 Label.py : 
