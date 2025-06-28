@@ -18,27 +18,35 @@ def label():
 
 # advanced labelling functions
 def label_sales():
-    """label sales"""
+    """label sales using no_of_items_sold and revenue"""
     return NotImplementedError
 
 def label_competions():
-    """label competition"""
+    """label competition using avg_basket_size, new_customers, repeat_customers"""
     return NotImplementedError
 
 def label_product_popularity():
-    """label product_popularity"""
+    """label product_popularity using products_sold, profit_share"""
     return NotImplementedError
 
 def label_pricing():
-    """label pricing"""
+    """label pricing using product_price, profit_share"""
     return NotImplementedError
 
 def label_stocking():
-    """label stocking"""
+    """label stocking using products_sold, profit_share, product_price"""
     return NotImplementedError
 
 def label_season():
     """label season"""
+    return NotImplementedError
+
+def label_external_factors():
+    """label external_factors using economy, season and competition metrics"""
+    return NotImplementedError
+
+def label_strategic_levers():
+    """label strategic_levers using pricing and stocking metrics"""
     return NotImplementedError
 
 def save_labelled_row():
