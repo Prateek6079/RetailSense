@@ -58,6 +58,8 @@ Labelled Data Schema : CREATE TABLE labelled_data (
                                                     stocking TEXT CHECK (stocking IN ('abundant', 'short', 'balanced')),
                                                     product_popularity TEXT CHECK (product_popularity IN ('climbing', 'declining', 'stable')),
                                                     season TEXT CHECK (season IN ('festive', 'off', 'usual')),
+                                                    external_factors TEXT CHECK (external_factors IN ('favourable', 'moderate', 'unfavourable')),
+                                                    strategic_levers TEXT CHECK (strategic_levers IN ('high', 'moderate', 'low')),
                                                     FOREIGN KEY (month) REFERENCES business_metrics(month)
                                                     );
 
