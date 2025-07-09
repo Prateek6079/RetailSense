@@ -9,8 +9,9 @@ import pickle
 
 # write a better probability impact function
 
-negative_states = {"profits" : ["low"], "sales" : ["low"], "pricing" : ["high"], "strategic_levers" : ["low"], 
-                   "costs" : ["high"], "external_factors" : ["unfavourable"], "operational_efficiency" : ["rough"], 
+negative_states = {"profits" : ["stable","low"], "sales" : ["stable","low"], "pricing" : ["high"], 
+                   "strategic_levers" : ["moderate","low"], "costs" : ["stable","high"], 
+                   "external_factors" : ["moderate","unfavourable"], "operational_efficiency" : ["rough"], 
                     "stocking" : ["abundant", "short"], "product_popularity" : ["declining"], "season" : ["off"], 
                     "economy" : ["bad"], "competition" : ["high"]}
 
@@ -73,49 +74,74 @@ def save_model(model, file="model.pkl"):
         pickle.dump(model, f)
 
     print("model_saved")
-    return 
+    return
+
+
+def normalize_by_abs(values):
+    total_abs = sum(abs(v) for v in values)
+    return [v / total_abs for v in values] if total_abs != 0 else [0 for v in values]
+
+
+def drift(node, new_evidence, old_evidence = dict()):
+    """Returns how much the probability of a variable drifts when certain evidence presents itself"""
+    states = model.get_cpds(node).state_names[node]
+    drift_states = negative_states[node]
+    drift = 0
+    for state in drift_states:
+        if state not in states:
+            continue
+        old_value = infer.query(variables=[node], evidence=old_evidence).get_value(**{node : states.index(state)})
+        new_value = infer.query(variables=[node], evidence=new_evidence).get_value(**{node : states.index(state)})
+        drift += old_value - new_value
+    return drift
 
 
 def get_parent_impact(node, evidence):
-    """return the impace of each parent node on the intermediary node post the evidence"""
+    """return the impace of each parent node on the intermediary node post the evidence
+    P(node | evidence) - P(node | evidence ^ parent) likelihood weighted on all states
+    P(node | evidence - parent) - P(node | evidence)"""
     edge_contribution = {}
+    old_evidence = evidence.copy()
     new_evidence = evidence.copy()
-    parents = model.get_parents(node)
-    state_names = model.get_cpds(node).state_names[node]
-    neg_state = negative_states[node]
-    # testing
-    print("node : ", node)
+    try:
+        del new_evidence[node]
+        del old_evidence[node]
+    except KeyError:
+        pass
 
+    parents = model.get_parents(node)
+    values = []
     for parent in parents:
-        edge_contribution[parent] = 0
-        print(f"{parent} : {negative_states[parent]}")
-        for label in negative_states[parent]:
-            new_evidence[parent] = label
-            try:
-                old_val = infer.query(variables=[node]).get_value(**{node : state_names.index(neg_state)})
-                new_val = infer.query(variables=[node], evidence=new_evidence).get_value(**{node : state_names.index(neg_state)})
-            except ValueError:
-                print("exception at get_parent_impact")
-                old_val = 0
-                new_val = 0
-            edge_contribution[parent] += round(old_val - new_val, 3)
+        contr = 0
+        try:
+            # run for evidence
+            temp_evidence = new_evidence[parent]
             del new_evidence[parent]
+            contr = drift(node, old_evidence, new_evidence) # actually new_evidence and old_evidence are interchanged so don't be confused
+            new_evidence[parent] = temp_evidence
+        except KeyError:
+            # run normally
+            states = model.get_cpds(parent).state_names[parent]
+            for label in states:
+                new_evidence[parent] = label
+                weight = infer.query(variables=[parent]).get_value(**{parent : states.index(label)})
+                contr += drift(node, new_evidence, old_evidence) * weight
+                del new_evidence[parent]
+        values.append(contr)
+
+    values = normalize_by_abs(values)
+    for i in range(len(parents)):
+        edge_contribution[parents[i]] = round(values[i], 3)
 
     return edge_contribution
 
 
-def get_impact(node, n_label, evidence):
-    """returns the deviance of the node due to evidence"""
-    state_names = model.get_cpds(node).state_names[node]
-    print(f"{node} : {n_label}")
-    try:
-        old_value = infer.query(variables=[node]).get_value(**{node : state_names.index(n_label)})
-        new_value = infer.query(variables=[node], evidence=evidence).get_value(**{node : state_names.index(n_label)})
-    except ValueError:
-        print("exception at get_impact")
-        old_value = 0
-        new_value = 0
-    return round(old_value - new_value, 3)
+def get_impact(node, evidence):
+    """returns the drift of the node due to evidence"""
+    if node in evidence.keys():
+        print(f"{node} is part of the evidence")
+        return 0
+    return round(drift(node, evidence), 3)
 
 
 def get_probability(variable, states, evidence):
@@ -127,6 +153,7 @@ def get_probability(variable, states, evidence):
         try:
             probability += result.get_value(**{variable : state_names.index(state)})
         except ValueError:
+            print("exception occured in get_probability")
             probability += 0
 
     return round(probability, 3)
@@ -150,8 +177,7 @@ def causal_diagnosis(evidence):
     root_causes = {"strategic_levers" : ["low"], "operational_efficiency" : ["rough"], "stocking" : ["short", "abundant"], 
                    "product_popularity" : ["declining"], "competition" : ["high"], "economy" : ["bad"]}
 
-    intermediary_nodes = {"external_factors" : "unfavourable", "costs" : "high", "profits" : "low", "sales" : "low"
-                          , "pricing" : "high"}
+    intermediary_nodes = ["external_factors", "costs", "profits"]
 
     # root causes and intermediary nodes
     # root causes simple probability post evidence
@@ -168,17 +194,15 @@ def causal_diagnosis(evidence):
 
 
     # impact analysis
-    for node in intermediary_nodes.keys():
-        impact = get_impact(node, intermediary_nodes[node], evidence)
-        descendent_contr = get_parent_impact(node, evidence)
-        state["impact"][node] = impact
-        state["edges"][node] = descendent_contr
+    for node in intermediary_nodes:
+        state["impact"][node] = get_impact(node, evidence)
+
+    # edge weight analysis
+    for node in model.nodes:
+        state["edges"][node] = get_parent_impact(node, evidence)
 
     return state
 
-# test code
+
 
 initialize_engine()
-
-evidence = {"season" : "festive", "pricing" : "low", "sales" : "stable"}
-print(causal_diagnosis(evidence))
