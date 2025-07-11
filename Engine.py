@@ -205,6 +205,3 @@ def causal_diagnosis(evidence):
 
 
 initialize_engine()
-
-# test code
-print(causal_diagnosis({"season" : "festive", "pricing" : "high", "sales" : "low"}))
