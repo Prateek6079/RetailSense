@@ -30,7 +30,7 @@ model = DiscreteBayesianNetwork([("sales", "profits"),
                          ("season", "external_factors"),
                          ("economy", "external_factors"),
                          ("competition", "external_factors"),
-                         ("product_popularity", "stocking")])
+                         ("stocking", "product_popularity")])
 
 
 infer = None
