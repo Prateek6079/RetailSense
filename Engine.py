@@ -29,7 +29,8 @@ model = DiscreteBayesianNetwork([("sales", "profits"),
                          ("pricing", "strategic_levers"),
                          ("season", "external_factors"),
                          ("economy", "external_factors"),
-                         ("competition", "external_factors")])
+                         ("competition", "external_factors"),
+                         ("product_popularity", "stocking")])
 
 
 infer = None
@@ -38,8 +39,7 @@ infer = None
 def initialize_engine():
     """Load the engine from older model or create new model"""
     global model
-    model = compute_new_cpt()
-    save_model(model)
+    model = load_model()
     global infer
     infer = get_inference_engine(model)
     return
@@ -204,5 +204,7 @@ def causal_diagnosis(evidence):
     return state
 
 
-
 initialize_engine()
+
+# test code
+print(causal_diagnosis({"season" : "festive", "pricing" : "high", "sales" : "low"}))
