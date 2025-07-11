@@ -31,10 +31,6 @@ def red_shade(prob):
 
 
 
-
-
-
-
 def green_shade():
     return "#00cc66"
 
@@ -189,7 +185,8 @@ def realtime():
     if state is None:
         return render_template_string(template_base, content='<p style="color:red;">❌ Invalid or unseen evidence.</p>', active='realtime')
 
-   
+    # In dashboard.py, inside realtime() function, after state = causal_diagnosis(evidence)
+    print("Calculated Edge Impacts:", state["edges"])
 
     # ✅ Create graph
     net = Network(height="600px", width="100%", directed=True, bgcolor="#2c2c2c")
