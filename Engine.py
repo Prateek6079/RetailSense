@@ -172,7 +172,10 @@ def causal_diagnosis(evidence):
             return
 
     # return the current state of the business
-    state = {"root_causes" : {}, "impact" : {}, "edges" : {}}
+    state = {"root_causes" : {}, "impact" : {}, "edges" : {}, "evidence" : {}}
+
+    for evd in evidence.keys():
+        state["evidence"][evd] = (evidence[evd], 1)
 
     root_causes = {"strategic_levers" : ["low"], "operational_efficiency" : ["rough"], "stocking" : ["short", "abundant"], 
                    "product_popularity" : ["declining"], "competition" : ["high"], "economy" : ["bad"]}
