@@ -159,7 +159,7 @@ def get_probability(variable, states, evidence):
     return round(probability, 3)
 
 
-def causal_diagnosis(evidence):
+def causal_diagnosis(evidence = {"pricing" : "high", "sales" : "low", "season" : "festive"}):
     """Define a Tree that represents the pathology of losses from the belief graph itself by definingin the root causes
     (leaves) where the root of the tree is profit and the leaves are root causes like bad economy or tough competition"""
     # check for proper evidence
