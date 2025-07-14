@@ -1,32 +1,35 @@
-from flask import Flask, render_template_string, request
+from flask import Flask, render_template_string, request, redirect, url_for
 from pyvis.network import Network
 import os
 import sys
+import json # Import the json module
 
-# Ensure the Engine module can be imported
-# This assumes engine.py is in the same directory or on the Python path
+# Import the entire Engine module to ensure all its functions and variables are accessible
 try:
-    from Engine import initialize_engine, causal_diagnosis, model, infer, compute_new_cpt, save_model
+    import Engine 
 except ImportError:
     # Fallback for environments where direct import might fail,
     # assuming engine.py is in the current working directory.
-    # This is a common pattern in some deployment setups.
     import importlib.util
     spec = importlib.util.spec_from_file_location("Engine", "engine.py")
     Engine = importlib.util.module_from_spec(spec)
     sys.modules["Engine"] = Engine
     spec.loader.exec_module(Engine)
-    from Engine import initialize_engine, causal_diagnosis, model, infer, compute_new_cpt, save_model
-
+    import Engine # Re-import after loading via spec
 
 # Initialize the engine and compute/save the model once on startup
-initialize_engine()
+# Ensure Engine.model and Engine.infer are available after initialization
+Engine.initialize_engine()
 # Recompute CPTs with the latest data and save the model
 # This ensures the model is up-to-date when the app starts
-model = compute_new_cpt()
-save_model(model)
+# This part is handled within Engine.initialize_engine() if model.pkl is not found
+# Engine.model = Engine.compute_new_cpt() # Removed, as initialize_engine handles it
+# Engine.save_model(Engine.model) # Removed, as initialize_engine handles it
 
 app = Flask(__name__)
+
+# global day variable
+current_day = 1 # Initialize global current_day
 
 def red_shade(prob):
     """
@@ -61,6 +64,20 @@ def edge_color(value):
     else:
         return f"rgba(255, 51, 51, {alpha:.2f})"  # strong red
 
+positions = {
+    "season": (-600 , 10 ), 
+    "economy": (-450 , 100 ), 
+    "competition": (-300 , 150 ),
+    "external_factors": (-300 , -100 ), 
+    "product_popularity": (50 , 300 ), 
+    "sales": (50 , -200 ),
+    "profits": (300 , -300 ), 
+    "costs": (500 , 100 ), 
+    "pricing": (350 , 50 ),
+    "stocking": (200 , 150 ), 
+    "strategic_levers": (200 , -50 ), 
+    "operational_efficiency": (550 , 200 )
+}
 
 # ------------------- Template Base -------------------
 template_base = """
@@ -133,8 +150,28 @@ template_base = """
         }
         table {
             border-collapse: collapse;
-            width: 100%;
+            width: 100%; /* Keep 100% for smaller screens */
+            max-width: 98%; /* Set a maximum width for the table */
+            margin: 20px auto; /* Center the table horizontally and add some vertical margin */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Add a subtle shadow for depth */
+            border-radius: 8px; /* Slightly rounded corners for the table */
+            overflow: hidden; /* Ensures border-radius applies to inner elements */
         }
+        
+        /* ADDED/MODIFIED CSS FOR TABLE HEADERS AND DATA CELLS */
+        th {
+            background-color: #2a3d54; /* Darker blue shade for headers */
+            color: #e0e0e0; /* Lighter text for contrast */
+            font-weight: bold;
+            text-transform: uppercase; /* Makes headers stand out */
+            letter-spacing: 0.5px;
+        }
+        td {
+            background-color: #2c2c2c; /* Ensure table data cells have a distinct background */
+            color: #e0e0e0;
+        }
+        /* END ADDED/MODIFIED CSS */
+
         iframe {
             width: 100%;
             height: calc(100vh - 180px);
@@ -166,6 +203,7 @@ template_base = """
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
+            margin-left: 10px;
         }
         hr {
             border: 0;
@@ -174,8 +212,10 @@ template_base = """
             margin: 20px 0;
         }
         h3 {
+            margin-top: 5px;
             color: #90caf9;
             margin-bottom: 15px;
+            text-align: center;
         }
         ul {
             list-style: none;
@@ -187,6 +227,234 @@ template_base = """
             padding: 10px;
             border-radius: 4px;
             border: 1px solid #444;
+        }
+
+
+        /* Styles for the new daily context feature */
+        .daily-context-container {
+            padding: 20px;
+            background: #1e1e1e;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+        }
+        .day-selector-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+        }
+        .day-selector-group label {
+            font-size: 1.1em;
+            white-space: nowrap;
+        }
+        .day-selector-group input[type="range"] {
+            flex-grow: 1;
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #444;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        .day-selector-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #1976D2;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+        .day-selector-group input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #1976D2;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+        .day-number-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding: 0 5px;
+            position: relative;
+            height: 30px;
+        }
+        .day-number-line::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #555;
+            transform: translateY(-50%);
+            z-index: 0;
+        }
+        .day-number {
+            width: 25px; /* Fixed width for each day circle */
+            height: 25px; /* Fixed height for each day circle */
+            background: #444;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #bbb;
+            position: relative;
+            z-index: 1;
+            transition: background 0.3s ease, color 0.3s ease, border 0.3s ease, box-shadow 0.3s ease; /* Added border and box-shadow to transition */
+            cursor: pointer;
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+        .day-number.highlighted {
+            background: #1976D2;
+            color: white;
+            box-shadow: 0 0 8px rgba(25, 118, 210, 0.8);
+            border: 2px solid #66bb6a;
+        }
+        .day-number.past-day {
+            background: #3a3a3a; /* Slightly different shade for past days */
+        }
+        .day-number:hover {
+            transform: scale(1.1);
+        }
+        .evidence-list, .predictions-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .evidence-item, .prediction-item {
+            background: #2c2c2c;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        .evidence-item p, .prediction-item p {
+            margin: 5px 0;
+            font-size: 0.95em;
+        }
+        .evidence-item strong, .prediction-item strong {
+            color: #90caf9;
+        }
+        /* Styling for the nested probability list */
+        .probability-list {
+            list-style: none; /* Remove bullet points */
+            padding-left: 0;
+            margin-top: 5px;
+        }
+        .probability-list li {
+            background-color: #383838; /* Slightly darker background for inner list items */
+            padding: 5px 10px;
+            margin-bottom: 3px;
+            border-radius: 3px;
+            font-size: 0.9em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #444;
+        }
+        .probability-bar {
+            height: 10px;
+            background-color: #66bb6a; /* Green for probability bar */
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .probability-list li .state-value {
+            flex-shrink: 0; /* Prevent the state name from shrinking */
+            margin-right: 15px; /* Space between state name and probability section */
+            min-width: 80px; /* Ensure enough space for the state name, adjust as needed */
+            color: #90caf9; /* Highlight state name */
+            font-weight: bold;
+        }
+
+        .probability-display {
+            display: flex; /* Use flex for number and bar */
+            align-items: center;
+            flex-grow: 1; /* Allow this container to take up remaining space */
+        }
+        .probability-number {
+            font-weight: bold;
+            margin-right: 8px; /* Space between number and the bar */
+            flex-shrink: 0; /* Prevent the number from shrinking */
+            min-width: 35px; /* Give enough room for numbers like "0.95" */
+            text-align: right; /* Align numbers to the right if min-width makes them float */
+        }
+        .probability-bar-track {
+            flex-grow: 1; /* Allow the track to fill available space */
+            height: 10px;
+            background-color: #444; /* Darker grey for the bar's empty track */
+            border-radius: 2px;
+            overflow: hidden; /* Ensures the green bar stays within the rounded track */
+        }
+
+        /* Styles for custom radio buttons */
+        .form-group label input[type="radio"] {
+            /* Hide the default radio button */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            border: none; /* Remove default border */
+            outline: none; /* Remove outline on focus */
+            margin-right: 8px; /* Space between custom box and label text */
+            position: relative; /* For positioning the custom box */
+            top: 2px; /* Adjust vertical alignment if needed */
+            vertical-align: middle; /* Align with text */
+            cursor: pointer;
+        }
+
+        .form-group label input[type="radio"]::before {
+            content: '';
+            display: inline-block;
+            width: 18px; /* Size of the custom box */
+            height: 18px; /* Size of the custom box */
+            border: 2px solid #90caf9; /* Border color for the unchecked box */
+            border-radius: 4px; /* Slightly rounded corners for a modern look */
+            background-color: #2c2c2c; /* Background of the unchecked box */
+            transition: all 0.2s ease; /* Smooth transition for changes */
+            vertical-align: middle;
+        }
+
+        .form-group label input[type="radio"]:checked::before {
+            background-color: #1976D2; /* Background of the checked box */
+            border-color: #1976D2; /* Border color of the checked box */
+        }
+
+        .form-group label input[type="radio"]:checked::after {
+            content: '✔'; /* Unicode checkmark character */
+            font-size: 14px; /* Size of the tick */
+            color: white; /* Color of the tick */
+            position: absolute;
+            left: 2px; /* Adjust tick position within the box */
+            top: 0px; /* Adjust tick position within the box */
+            line-height: 18px; /* Vertically center the tick */
+            text-align: center;
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Optional: improve focus styling for accessibility */
+        .form-group label input[type="radio"]:focus::before {
+            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.5); /* Blue glow on focus */
+        }
+
+        /* To ensure labels are block elements for better alignment and clickable area */
+        .form-group label {
+            display: flex; /* Use flexbox to align input and text */
+            align-items: center; /* Vertically center items */
+            margin-bottom: 10px; /* Space between radio options */
+            cursor: pointer;
+            font-size: 1.1em; /* Make text a bit larger */
         }
     </style>
 </head>
@@ -201,8 +469,62 @@ template_base = """
         <a href="/training" class="{{ 'active' if active=='training' else '' }}">Training Configuration</a>
     </nav>
     <div class="tab">
-        {{ content|safe }}
+        {% if active == 'realtime' %} {# <--- CONDITIONALLY RENDER THIS BLOCK #}
+        <div class="daily-context-container">
+            <h3>Daily Business Context Simulation</h3>
+            <div style="font-size: 1.2em; font-weight: bold; color: #90caf9; text-align: center; margin-bottom: 15px;">
+                Current Day: <span id="currentDayDisplay">Day {{ current_day }}</span>
+            </div>
+            <div class="day-number-line">
+                {% for i in range(1, 32) %}
+                    <span class="day-number {% if i <= current_day %}past-day{% endif %} {% if i == current_day %}highlighted{% endif %}" onclick="setDay({{ i }})">{{ i }}</span>
+                {% endfor %}
+            </div>
+
+            <h3 style="margin-top: 25px;">Current Active Evidence</h3>
+            <div class="evidence-list">
+                {% if active_evidence %}
+                    {% for var, val in active_evidence.items() %}
+                        <div class="evidence-item">
+                            <p><strong>{{ var.replace('_', ' ').title() }}:</strong> {{ val.title() }}</p>
+                            <p><strong>Confidence:</strong> {{ active_evidence_confidence[var] * 100 | int }}%</p>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No active evidence for this day yet.</p>
+                {% endif %}
+            </div>
+
+            <h3 style="margin-top: 25px;">Future Predictions</h3>
+            <div class="predictions-list">
+                <div class="prediction-item">
+                    <p><strong>Predicted Profits:</strong>
+                        {{ future_predictions['predicted_profits'][0].title() }}
+                        ({{ (future_predictions['predicted_profits'][1] * 100) | round(2) }}%)
+                    </p>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <iframe src="/graph.html?day={{ current_day }}"></iframe>
+        {% endif %} {# <--- END OF CONDITIONAL BLOCK #}
+
+        {{ content | safe }} {# <--- THIS IS WHERE THE SPECIFIC PAGE CONTENT GOES #}
     </div>
+
+    {% if active == 'realtime' %} {# <--- CONDITIONALLY INCLUDE SCRIPT #}
+    <script>
+        function updateDay(day) {
+            document.getElementById('currentDayDisplay').innerText = 'Day ' + day;
+            // Update the URL to trigger Flask route reload with new day
+            window.location.href = '/?day=' + day;
+        }
+
+        function setDay(day) {
+            updateDay(day);
+        }
+    </script>
+    {% endif %}
 </body>
 </html>
 """
@@ -210,89 +532,120 @@ template_base = """
 # ------------------- Real-time Route -------------------
 @app.route("/")
 def realtime():
-    # Node positions for graph layout to ensure a consistent and readable layout
-    # Scaled positions by 4.0 to make the graph larger and fill the space better
-    scale_factor = 4.0 # Increased scale factor
-    positions = {
-        "season": (-600  , 10 ), 
-        "economy": (-450 , 100 ), 
-        "competition": (-300 , 150 ),
-        "external_factors": (-300 , -100 ), 
-        "product_popularity": (50 , 300 ), 
-        "sales": (50 , -200 ),
-        "profits": (300 , -300 ), 
-        "costs": (500 , 100 ), 
-        "pricing": (350 , 50 ),
-        "stocking": (200 , 150 ), 
-        "strategic_levers": (200 , -50 ), 
-        "operational_efficiency": (550 , 200 )
-    }
+    global current_day
+    current_day = int(request.args.get("day", current_day))
 
-    # Define the current evidence for real-time diagnosis
-    # Ensure states match the model's expected states (e.g., lowercase)
-    evidence = {k: v.lower() for k, v in {
-        "season": "off", 
-        "sales": "low", 
-        "pricing": "high", 
-    }.items()}
+    # Corrected: Pass current_day to causal_diagnosis and store the result
+    full_state = Engine.causal_diagnosis(current_day) 
+    diagnosis = full_state # Use the already computed full_state for diagnosis details
 
-    # Debugging: Print valid states for evidence variables to ensure consistency
-    # for var in evidence:
-    #     try:
-    #         valid_states = model.get_cpds(var).state_names[var]
-    #         print(f"DEBUG: {var}: evidence = {evidence[var]}, valid = {valid_states}")
-    #     except Exception as e:
-    #         print(f"DEBUG: Could not get states for {var}: {e}")
+    print("📦 Full State from causal_diagnosis():", full_state) # Keep this for debugging
+    
+    # Initialize active_evidence and active_evidence_confidence
+    active_evidence = {}
+    active_evidence_confidence = {}
+    
+    # Extract evidence and confidence from the state returned by causal_diagnosis
+    if full_state and "evidence" in full_state:
+        for node, value_conf_list in full_state["evidence"].items():
+            if isinstance(value_conf_list, list) and len(value_conf_list) == 2:
+                active_evidence[node] = value_conf_list[0]
+                active_evidence_confidence[node] = value_conf_list[1]
+            else:
+                # Handle cases where evidence might not have a confidence (e.g., if detect returns just state)
+                active_evidence[node] = value_conf_list # Assuming it's just the state
+                active_evidence_confidence[node] = 1.0 # Default to 100% confidence if not provided
 
-    # Run causal diagnosis with the provided evidence
-    state = causal_diagnosis(evidence)
-    if state is None:
+    # Hardcode future_predictions as it's no longer returned by get_daily_context
+    # You might want to implement a separate function in Engine or here to predict profits
+    # Default to ("unknown", 0.0) as per your template's expectation for future_predictions['predicted_profits']
+    future_predictions = {"predicted_profits": ("unknown", 0.0)} 
+    # Example for dynamic prediction if you want to re-add logic:
+    # if current_day < 10:
+    #     future_predictions["predicted_profits"] = ("low", 0.7)
+    # elif 10 <= current_day < 20:
+    #     future_predictions["predicted_profits"] = ("stable", 0.8)
+    # else:
+    #     future_predictions["predicted_profits"] = ("high", 0.9)
+
+
+    if diagnosis is None: # Check diagnosis instead of full_state for error handling
         # If diagnosis fails (e.g., invalid evidence), display an error message
-        return render_template_string(template_base, content='<p style="color:red;">❌ Invalid or unseen evidence provided. Please check the input values.</p>', active='realtime')
+        return render_template_string(template_base, 
+                                      content='<p style="color:red;">❌ Invalid or unseen evidence provided. Please check the input values.</p>', 
+                                      active='realtime',
+                                      current_day=current_day,
+                                      active_evidence={},
+                                      active_evidence_confidence={},
+                                      future_predictions={"predicted_profits": ("N/A", 0.0)}) # Ensure tuple format
 
     # Debugging: Print the calculated edge impacts to understand why edges might be missing
-    print("DEBUG: Calculated Edge Impacts:", state["edges"])
+    print("DEBUG: Calculated Edge Impacts:", diagnosis["edges"])
 
     # Create a pyvis network graph
-    # Changed height to "100%" to fill the iframe vertically
     net = Network(height="549px", width="100%", directed=True, bgcolor="#2c2c2c", font_color="white")
 
     # Add nodes to the graph
-    for node in model.nodes():
-        label = node.replace("_", " ").title() # Format node names for display
+    for node in Engine.model.nodes(): 
+        label = node.replace("_", " ").title() 
+        node_border_width = 1 # Default border width
+        title = label # Default title
 
-        # Determine node color and title based on its role in the diagnosis
-        if node in evidence:
-            color = green_shade() # Green for evidence nodes
-            title = f"{label}\nEvidence: {evidence[node].title()}"
-        elif node in state["root_causes"]:
-            # Red shades for root causes based on their probability
-            prob = state["root_causes"][node][1]
-            color = red_shade(prob)
-            title = f"{label}\nRoot Cause Probability: {prob:.2f}"
-        elif node in state["impact"]:
-            # Red shades for impacted nodes based on their impact value
-            impact = state["impact"][node]
-            color = red_shade(impact)
-            title = f"{label}\nImpact: {impact:.2f}"
+        try:
+            state_names = Engine.model.get_cpds(node).state_names[node]
+            # Use active_evidence for inference
+            evidence_for_inference = {k: v for k, v in active_evidence.items()}
+            result = Engine.infer.query(variables=[node], evidence=evidence_for_inference)
+            top_state = max(zip(state_names, result.values), key=lambda x: x[1])
+            title = f"{label}\nState: {top_state[0].title()}\nProbability: {top_state[1]*100:.2f}%"
+        except Exception as e: 
+            print(f"Error inferring state for node {node}: {e}")
+            title = label # Fallback to just label if inference fails
+
+        # Evidence node tag - FIX IS HERE
+        if node in active_evidence: # Use active_evidence here
+            evid_state_name = active_evidence[node] # Extract the state name string
+            conf_val = active_evidence_confidence.get(node, 1.0)
+            title += f"\nType: Evidence\nEvidence Value: {evid_state_name.title()}\nEvidence Confidence: {conf_val*100:.2f}%"
+            node_border_width = 1 + (conf_val * 4) # Scale confidence (0-1) to border width (1-5)
+
+        # Root cause tag
+        if node in diagnosis["root_causes"]:
+            cause_vals, prob = diagnosis["root_causes"][node]
+            title += f"\nType: Root Cause\nTarget State(s): {', '.join(cause_vals).title()}\nRoot Cause Probability: {prob*100:.2f}%"
+
+        # Impact info
+        if node in diagnosis["impact"]:
+            title += f"\nImpact Value: {diagnosis['impact'][node]:.2f}"
+
+        # Node color
+        if node in diagnosis["root_causes"]:
+            color = red_shade(diagnosis["root_causes"][node][1])
+        elif node in active_evidence: # Use active_evidence here
+            color = green_shade()
         else:
-            color = "#888" # Grey for other nodes
-            title = label
+            color = "#888"
 
-        # Get fixed positions for nodes for consistent layout
         x, y = positions.get(node, (0, 0))
-        net.add_node(node, label=label, shape="box", color=color, x=x, y=y, fixed=True, title=title, font={"color": "white"})
+        net.add_node(
+            node,
+            label=label,
+            shape="box",
+            color=color,
+            x=x,
+            y=y,
+            fixed=True,
+            title=title, # This is the corrected title string
+            borderWidth=node_border_width, # Apply border width based on confidence
+            font={"color": "white"}
+        )
 
-    # Add edges to the graph based on calculated impacts
-    for target, contributors in state["edges"].items():
+    for target, contributors in diagnosis["edges"].items():
         for source, value in contributors.items():
-            # Only add edges if both source and target nodes exist in the model
-            if source in model.nodes and target in model.nodes:
-                color = edge_color(value) # Determine edge color based on impact value
-                # Add edge from source to target with an arrow
-                net.add_edge(target, source, arrows="to", color=color, title=f"Impact: {value:.2f}", width=abs(value)*4 + 3) # Vary width by impact
+            if source in Engine.model.nodes and target in Engine.model.nodes:
+                color = edge_color(value)
+                net.add_edge(target, source, arrows="to", color=color, title=f"Impact: {value:.2f}", width=abs(value)*4 + 3)
 
-    # Configure pyvis network options for better visualization
     net.set_options("""
     {
         "layout": {"randomSeed": 1, "improvedLayout": false},
@@ -326,10 +679,14 @@ def realtime():
     }
     """)
 
-    # Save the graph to an HTML file and render it in an iframe
-    graph_file_path = "graph.html"
-    net.write_html(graph_file_path)
-    return render_template_string(template_base, content=f'<iframe src="/{graph_file_path}"></iframe>', active='realtime')
+    net.write_html("graph.html")
+
+    return render_template_string(template_base,
+                                  active="realtime",
+                                  current_day=current_day,
+                                  active_evidence=active_evidence,
+                                  active_evidence_confidence=active_evidence_confidence,
+                                  future_predictions=future_predictions)
 
 
 @app.route("/graph.html")
@@ -347,27 +704,27 @@ def monthly():
     result = "<p>Suggestions will appear here...</p>"
 
     # Define allowed variables for monthly diagnosis input
-    allowed_vars = ["season", "sales", "pricing"] # Added more variables for demonstration
+    allowed_vars = ["season", "sales", "pricing", "economy", "competition", "stocking"] 
     options = {}
 
     # Populate options for dropdowns based on model's CPDs
-    for cpd in model.get_cpds():
+    for cpd in Engine.model.get_cpds():
         if cpd.variable in allowed_vars:
             options[cpd.variable] = cpd.state_names[cpd.variable]
 
     if request.method == "POST":
         # Collect evidence from form submission
         evidence = {k: v.lower() for k, v in request.form.items() if k in allowed_vars}
-        
-        # Perform causal diagnosis
-        state = causal_diagnosis(evidence)
+
+        # Perform causal diagnosis - Pass a dummy day (e.g., 1) and the form evidence
+        state = Engine.causal_diagnosis(1, evidence=evidence) 
         if not state:
             result = "<p style='color:red;'>❌ Invalid or unseen input values. Please select valid options for all fields.</p>"
         else:
             # Format root causes and impacts for display
             root_html = "".join([f"<li><b>{k.replace('_', ' ').title()}</b>: {v[0]} &rarr; {v[1]:.2f}</li>" for k, v in state["root_causes"].items()])
             impact_html = "".join([f"<li><b>{k.replace('_', ' ').title()}</b> impacted with value {v:.2f}</li>" for k, v in state["impact"].items()])
-            
+
             result = f"""
                 <h3>Root Causes Identified</h3>
                 <ul>{root_html}</ul>
@@ -403,36 +760,56 @@ def monthly():
 @app.route("/market")
 def market():
     content = """
-    <h3>Most Likely States for Business Variables (Based on Prior Probabilities)</h3>
+    <h3>Prior Probability Distribution for Business Variables</h3>
     <table>
-        <tr><th>Variable</th><th>Most Likely Value (Probability)</th></tr>
+        <tr><th>Variable</th><th>Probability Distribution</th></tr>
     """
     # Iterate through all nodes in the model to infer their most likely state
-    for node in model.nodes():
+    for node in Engine.model.nodes(): 
         try:
-            state_names = model.get_cpds(node).state_names[node]
-            # Query the marginal probability distribution for each variable
-            result = infer.query(variables=[node])
-            # Find the state with the highest probability
-            top_state = max(zip(state_names, result.values), key=lambda x: x[1])
-            content += f"<tr><td>{node.replace('_', ' ').title()}</td><td>{top_state[0].title()} ({top_state[1]:.2f})</td></tr>"
+            state_names = Engine.model.get_cpds(node).state_names[node] 
+            result = Engine.infer.query(variables=[node]) 
+            
+            # Start a nested unordered list for the probabilities
+            prob_list_html = "<ul class='probability-list'>"
+            
+            # Sort states by probability (descending) to show highest first
+            sorted_probabilities = sorted(zip(state_names, result.values), key=lambda x: x[1], reverse=True)
+
+            for state_name, probability in sorted_probabilities:
+                # Add a list item for each state and its probability
+                # Include a simple visual bar for probability
+                prob_list_html += f"""
+                <li>
+                    <span class="state-value">{state_name.title()}</span>
+                    <div class="probability-display">
+                        <span class="probability-number">{probability:.2f}</span>
+                        <div class="probability-bar-track">
+                            <div class="probability-bar" style="width: {(probability * 100):.0f}%;"></div>
+                        </div>
+                    </div>
+                </li>
+                """
+            prob_list_html += "</ul>"
+
+            content += f"<tr><td>{node.replace('_', ' ').title()}</td><td>{prob_list_html}</td></tr>"
         except Exception as e:
-            content += f"<tr><td>{node.replace('_', ' ').title()}</td><td>Error: Could not infer state ({str(e)})</td></tr>"
+            content += f"<tr><td>{node.replace('_', ' ').title()}</td><td>Error: Could not infer states ({str(e)})</td></tr>"
     content += "</table>"
     return render_template_string(template_base, content=content, active='market')
+
 
 # ------------------- Training Configuration -------------------
 @app.route("/training", methods=["GET", "POST"])
 def training():
-    global model # Declare model as global to modify it
     message = ""
     if request.method == "POST":
         # Get selected training period (though compute_new_cpt currently doesn't use it)
         selected = request.form.get("period", "last 6 months")
         try:
             # Recompute CPTs and save the updated model
-            model = compute_new_cpt()
-            save_model(model)
+            Engine.model = Engine.compute_new_cpt() 
+            Engine.save_model(Engine.model) 
             message = f"<p style='color:green;'>✅ Model successfully retrained using data from <b>{selected}</b>.</p>"
         except Exception as e:
             message = f"<p style='color:red;'>❌ Error retraining model: {str(e)}. Please check the database connection and data.</p>"
@@ -452,7 +829,4 @@ def training():
 
 # ------------------- Run App -------------------
 if __name__ == "__main__":
-    # Ensure the graph.html file is cleaned up on exit if needed, though not strictly necessary for this app
-    # if os.path.exists("graph.html"):
-    #     os.remove("graph.html")
     app.run(debug=True, port=5000)
