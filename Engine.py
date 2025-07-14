@@ -3,6 +3,7 @@
 from pgmpy.models import DiscreteBayesianNetwork
 from pgmpy.estimators import BayesianEstimator
 from pgmpy.inference import VariableElimination
+from Detection import detect
 import pandas as pd
 import sqlite3
 import pickle
@@ -159,23 +160,26 @@ def get_probability(variable, states, evidence):
     return round(probability, 3)
 
 
-def causal_diagnosis(evidence = {"pricing" : "high", "sales" : "low", "season" : "festive"}):
+def causal_diagnosis(current_day, evidence = {"pricing" : "high", "sales" : "low", "season" : "festive"}):
     """Define a Tree that represents the pathology of losses from the belief graph itself by definingin the root causes
     (leaves) where the root of the tree is profit and the leaves are root causes like bad economy or tough competition"""
     # check for proper evidence
+    evidence = detect(current_day)
     for node in evidence.keys():
         state_names = model.get_cpds(node).state_names[node]
         try:
-            index = state_names.index(evidence[node])
+            index = state_names.index(evidence[node][0])
         except ValueError:
-            print("Evidence Label is unseen in data")
-            return
+            print(f"skipped : {node} : {evidence[node]}")
+            del evidence[node]
 
     # return the current state of the business
     state = {"root_causes" : {}, "impact" : {}, "edges" : {}, "evidence" : {}}
 
-    for evd in evidence.keys():
-        state["evidence"][evd] = (evidence[evd], 1)
+    state["evidence"] = evidence
+
+    for node in evidence.keys():
+        evidence[node] = evidence[node][0]
 
     root_causes = {"strategic_levers" : ["low"], "operational_efficiency" : ["rough"], "stocking" : ["short", "abundant"], 
                    "product_popularity" : ["declining"], "competition" : ["high"], "economy" : ["bad"]}
@@ -192,6 +196,9 @@ def causal_diagnosis(evidence = {"pricing" : "high", "sales" : "low", "season" :
 
     # root cause analysis
     for cause in root_causes.keys():
+        if cause in evidence.keys():
+            del root_causes[cause]
+            continue
         prob = get_probability(cause, root_causes[cause], evidence)
         state["root_causes"][cause] = (root_causes[cause], prob)
 
@@ -203,6 +210,9 @@ def causal_diagnosis(evidence = {"pricing" : "high", "sales" : "low", "season" :
     # edge weight analysis
     for node in model.nodes:
         state["edges"][node] = get_parent_impact(node, evidence)
+
+    if state.get('evidence', {}) == None:
+        print("Problem In ENGINE")
 
     return state
 

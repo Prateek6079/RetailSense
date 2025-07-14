@@ -504,7 +504,7 @@ def realtime():
     global current_day
     current_day = int(request.args.get("day", current_day))
 
-    full_state = causal_diagnosis()
+    full_state = causal_diagnosis(current_day)
     print("📦 Full State from causal_diagnosis():", full_state) # Keep this for debugging
     evidence = full_state.get("evidence", {})
     print("🔍 Evidence dictionary:", evidence) # Keep this for debugging
@@ -513,7 +513,7 @@ def realtime():
     active_evidence = {k: v[0] for k, v in evidence.items()}  # state name
     active_evidence_confidence = {k: v[1] for k, v in evidence.items()}  # confidence score
 
-    diagnosis = causal_diagnosis() # Re-call diagnosis after evidence is processed to get latest state
+    diagnosis = causal_diagnosis(current_day) # Re-call diagnosis after evidence is processed to get latest state
 
     net = Network(height="549px", width="100%", directed=True, bgcolor="#2c2c2c", font_color="white")
 

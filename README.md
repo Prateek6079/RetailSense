@@ -18,7 +18,7 @@ By eliminating the need to manually interpret overwhelming volumes of operationa
 Project Design:
 
 Retail_Data.db:
-Data Tables : business_metrics, product_metrics
+Data Tables : business_metrics, product_metrics, real_time_data, labelled_data
 
 business_metrics schema : CREAT TABLE business_metrics (month TEXT PRIMARY KEY, -- format: 'YYYY-MM', e.g. '2025-06',
                                                         profits FLOAT,
@@ -62,6 +62,20 @@ Labelled Data Schema : CREATE TABLE labelled_data (
                                                     strategic_levers TEXT CHECK (strategic_levers IN ('high', 'moderate', 'low')),
                                                     FOREIGN KEY (month) REFERENCES business_metrics(month)
                                                     );
+
+
+real_time_data : everyday data of a retail store
+
+real_time_data schema : CREATE TABLE real_time_data (
+                            day INTEGER NOT NULL,
+                            product_name TEXT NOT NULL,
+                            units_sold INTEGER,
+                            price FLOAT,
+                            revenue FLOAT,
+                            accidents INTEGER,
+                            PRIMARY KEY (day, product_name)
+                        );
+
 
 
 Label.py : 
