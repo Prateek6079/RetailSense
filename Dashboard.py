@@ -1,31 +1,35 @@
 from flask import Flask, render_template_string, request, redirect, url_for
-
 from pyvis.network import Network
 import os
 import sys
+import json # Import the json module
 
-# Ensure the Engine module can be imported
-# This assumes engine.py is in the same directory or on the Python path
+# Import the entire Engine module to ensure all its functions and variables are accessible
 try:
-    from Engine import initialize_engine, causal_diagnosis, model, infer
+    import Engine 
 except ImportError:
     # Fallback for environments where direct import might fail,
-
+    # assuming engine.py is in the current working directory.
     import importlib.util
-    spec = importlib.util.spec_from_file_location("Engine", "Engine.py")
+    spec = importlib.util.spec_from_file_location("Engine", "engine.py")
     Engine = importlib.util.module_from_spec(spec)
     sys.modules["Engine"] = Engine
     spec.loader.exec_module(Engine)
-    from Engine import initialize_engine, causal_diagnosis, model, infer
+    import Engine # Re-import after loading via spec
 
-initialize_engine()
 # Initialize the engine and compute/save the model once on startup
-
+# Ensure Engine.model and Engine.infer are available after initialization
+Engine.initialize_engine()
+# Recompute CPTs with the latest data and save the model
+# This ensures the model is up-to-date when the app starts
+# This part is handled within Engine.initialize_engine() if model.pkl is not found
+# Engine.model = Engine.compute_new_cpt() # Removed, as initialize_engine handles it
+# Engine.save_model(Engine.model) # Removed, as initialize_engine handles it
 
 app = Flask(__name__)
 
 # global day variable
-current_day = 1
+current_day = 1 # Initialize global current_day
 
 def red_shade(prob):
     """
@@ -34,15 +38,15 @@ def red_shade(prob):
     prob = max(min(prob, 1.0), 0.0)
 
     if prob < 0.1:
-        return "rgb(255, 180, 170)"       # light red
+        return "rgb(255, 180, 170)"      # light red
     elif prob < 0.3:
-        return "rgb(255, 135, 135)"       # moderate red
+        return "rgb(255, 135, 135)"      # moderate red
     elif prob < 0.5:
-        return "rgb(255, 102, 102)"       # red
+        return "rgb(255, 102, 102)"      # red
     elif prob < 0.7:
-        return "rgb(255, 51, 51)"         # strong red
+        return "rgb(255, 51, 51)"        # strong red
     else:
-        return "rgb(255, 0, 0)"           # pure red
+        return "rgb(255, 0, 0)"          # pure red
 
 
 def green_shade():
@@ -54,28 +58,26 @@ def edge_color(value):
     Alpha used for visibility scaling but capped to a readable range.
     """
     # Ensure alpha is between 0.7 and 1.0 for visibility
-    alpha = min(max(abs(value), 1), 1.0)
+    alpha = min(max(abs(value), 1), 1.0) 
     if value > 0:
         return f"rgba(0, 102, 255, {alpha:.2f})"  # strong blue
     else:
         return f"rgba(255, 51, 51, {alpha:.2f})"  # strong red
 
 positions = {
-        "season": (-600  , 10 ),
-        "economy": (-450 , 100 ),
-        "competition": (-300 , 150 ),
-        "external_factors": (-300 , -100 ),
-        "product_popularity": (50 , 300 ),
-        "sales": (50 , -200 ),
-        "profits": (300 , -300 ),
-        "costs": (500 , 100 ),
-        "pricing": (350 , 50 ),
-        "stocking": (200 , 150 ),
-        "strategic_levers": (200 , -50 ),
-        "operational_efficiency": (550 , 200 )
-    }
-
-
+    "season": (-600 , 10 ), 
+    "economy": (-450 , 100 ), 
+    "competition": (-300 , 150 ),
+    "external_factors": (-300 , -100 ), 
+    "product_popularity": (50 , 300 ), 
+    "sales": (50 , -200 ),
+    "profits": (300 , -300 ), 
+    "costs": (500 , 100 ), 
+    "pricing": (350 , 50 ),
+    "stocking": (200 , 150 ), 
+    "strategic_levers": (200 , -50 ), 
+    "operational_efficiency": (550 , 200 )
+}
 
 # ------------------- Template Base -------------------
 template_base = """
@@ -359,12 +361,41 @@ template_base = """
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border: 1px solid #444;
         }
         .probability-bar {
             height: 10px;
             background-color: #66bb6a; /* Green for probability bar */
             border-radius: 2px;
-            margin-left: 10px;
+            overflow: hidden;
+        }
+
+        .probability-list li .state-value {
+            flex-shrink: 0; /* Prevent the state name from shrinking */
+            margin-right: 15px; /* Space between state name and probability section */
+            min-width: 80px; /* Ensure enough space for the state name, adjust as needed */
+            color: #90caf9; /* Highlight state name */
+            font-weight: bold;
+        }
+
+        .probability-display {
+            display: flex; /* Use flex for number and bar */
+            align-items: center;
+            flex-grow: 1; /* Allow this container to take up remaining space */
+        }
+        .probability-number {
+            font-weight: bold;
+            margin-right: 8px; /* Space between number and the bar */
+            flex-shrink: 0; /* Prevent the number from shrinking */
+            min-width: 35px; /* Give enough room for numbers like "0.95" */
+            text-align: right; /* Align numbers to the right if min-width makes them float */
+        }
+        .probability-bar-track {
+            flex-grow: 1; /* Allow the track to fill available space */
+            height: 10px;
+            background-color: #444; /* Darker grey for the bar's empty track */
+            border-radius: 2px;
+            overflow: hidden; /* Ensures the green bar stays within the rounded track */
         }
 
         /* Styles for custom radio buttons */
@@ -504,46 +535,84 @@ def realtime():
     global current_day
     current_day = int(request.args.get("day", current_day))
 
-    full_state = causal_diagnosis(current_day)
+    # Corrected: Pass current_day to causal_diagnosis and store the result
+    full_state = Engine.causal_diagnosis(current_day) 
+    diagnosis = full_state # Use the already computed full_state for diagnosis details
+
     print("📦 Full State from causal_diagnosis():", full_state) # Keep this for debugging
-    evidence = full_state.get("evidence", {})
-    print("🔍 Evidence dictionary:", evidence) # Keep this for debugging
+    
+    # Initialize active_evidence and active_evidence_confidence
+    active_evidence = {}
+    active_evidence_confidence = {}
+    
+    # Extract evidence and confidence from the state returned by causal_diagnosis
+    if full_state and "evidence" in full_state:
+        for node, value_conf_list in full_state["evidence"].items():
+            if isinstance(value_conf_list, list) and len(value_conf_list) == 2:
+                active_evidence[node] = value_conf_list[0]
+                active_evidence_confidence[node] = value_conf_list[1]
+            else:
+                # Handle cases where evidence might not have a confidence (e.g., if detect returns just state)
+                active_evidence[node] = value_conf_list # Assuming it's just the state
+                active_evidence_confidence[node] = 1.0 # Default to 100% confidence if not provided
 
-    # This seems correct as it extracts the state name (first element of the tuple)
-    active_evidence = {k: v[0] for k, v in evidence.items()}  # state name
-    active_evidence_confidence = {k: v[1] for k, v in evidence.items()}  # confidence score
+    # Hardcode future_predictions as it's no longer returned by get_daily_context
+    # You might want to implement a separate function in Engine or here to predict profits
+    # Default to ("unknown", 0.0) as per your template's expectation for future_predictions['predicted_profits']
+    future_predictions = {"predicted_profits": ("unknown", 0.0)} 
+    # Example for dynamic prediction if you want to re-add logic:
+    # if current_day < 10:
+    #     future_predictions["predicted_profits"] = ("low", 0.7)
+    # elif 10 <= current_day < 20:
+    #     future_predictions["predicted_profits"] = ("stable", 0.8)
+    # else:
+    #     future_predictions["predicted_profits"] = ("high", 0.9)
 
-    diagnosis = causal_diagnosis(current_day) # Re-call diagnosis after evidence is processed to get latest state
 
+    if diagnosis is None: # Check diagnosis instead of full_state for error handling
+        # If diagnosis fails (e.g., invalid evidence), display an error message
+        return render_template_string(template_base, 
+                                      content='<p style="color:red;">❌ Invalid or unseen evidence provided. Please check the input values.</p>', 
+                                      active='realtime',
+                                      current_day=current_day,
+                                      active_evidence={},
+                                      active_evidence_confidence={},
+                                      future_predictions={"predicted_profits": ("N/A", 0.0)}) # Ensure tuple format
+
+    # Debugging: Print the calculated edge impacts to understand why edges might be missing
+    print("DEBUG: Calculated Edge Impacts:", diagnosis["edges"])
+
+    # Create a pyvis network graph
     net = Network(height="549px", width="100%", directed=True, bgcolor="#2c2c2c", font_color="white")
 
-    for node in model.nodes():
-        label = node.replace("_", " ").title()
+    # Add nodes to the graph
+    for node in Engine.model.nodes(): 
+        label = node.replace("_", " ").title() 
+        node_border_width = 1 # Default border width
         title = label # Default title
 
         try:
-            state_names = model.get_cpds(node).state_names[node]
-            result = infer.query(variables=[node], evidence=evidence)
+            state_names = Engine.model.get_cpds(node).state_names[node]
+            # Use active_evidence for inference
+            evidence_for_inference = {k: v for k, v in active_evidence.items()}
+            result = Engine.infer.query(variables=[node], evidence=evidence_for_inference)
             top_state = max(zip(state_names, result.values), key=lambda x: x[1])
-            # top_state[0] is the state name (string), so .title() is fine here
-            title = f"{label}\nState: {top_state[0].title()}\nConfidence: {top_state[1]*100:.2f}%"
-        except Exception as e: # Catch specific exceptions or log them instead of bare except
+            title = f"{label}\nState: {top_state[0].title()}\nProbability: {top_state[1]*100:.2f}%"
+        except Exception as e: 
             print(f"Error inferring state for node {node}: {e}")
             title = label # Fallback to just label if inference fails
 
         # Evidence node tag - FIX IS HERE
-        if node in evidence:
-            evid_val_tuple = evidence[node] # This is a tuple, e.g., ('high', 0.9)
-            evid_state_name = evid_val_tuple[0] # Extract the state name string
+        if node in active_evidence: # Use active_evidence here
+            evid_state_name = active_evidence[node] # Extract the state name string
             conf_val = active_evidence_confidence.get(node, 1.0)
             title += f"\nType: Evidence\nEvidence Value: {evid_state_name.title()}\nEvidence Confidence: {conf_val*100:.2f}%"
+            node_border_width = 1 + (conf_val * 4) # Scale confidence (0-1) to border width (1-5)
 
         # Root cause tag
         if node in diagnosis["root_causes"]:
             cause_vals, prob = diagnosis["root_causes"][node]
-            # cause_vals can be a list of strings, so ', '.join(cause_vals) is correct
             title += f"\nType: Root Cause\nTarget State(s): {', '.join(cause_vals).title()}\nRoot Cause Probability: {prob*100:.2f}%"
-
 
         # Impact info
         if node in diagnosis["impact"]:
@@ -552,7 +621,7 @@ def realtime():
         # Node color
         if node in diagnosis["root_causes"]:
             color = red_shade(diagnosis["root_causes"][node][1])
-        elif node in evidence:
+        elif node in active_evidence: # Use active_evidence here
             color = green_shade()
         else:
             color = "#888"
@@ -567,16 +636,13 @@ def realtime():
             y=y,
             fixed=True,
             title=title, # This is the corrected title string
+            borderWidth=node_border_width, # Apply border width based on confidence
             font={"color": "white"}
         )
 
-    # ... (rest of your realtime function)
-    # The second net.add_node call for the same node is redundant and can be removed:
-    # net.add_node(node, label=label, shape="box", color=color, x=x, y=y, fixed=True, title=title, font={"color": "white"})
-
     for target, contributors in diagnosis["edges"].items():
         for source, value in contributors.items():
-            if source in model.nodes and target in model.nodes:
+            if source in Engine.model.nodes and target in Engine.model.nodes:
                 color = edge_color(value)
                 net.add_edge(target, source, arrows="to", color=color, title=f"Impact: {value:.2f}", width=abs(value)*4 + 3)
 
@@ -620,8 +686,7 @@ def realtime():
                                   current_day=current_day,
                                   active_evidence=active_evidence,
                                   active_evidence_confidence=active_evidence_confidence,
-                                  future_predictions={"predicted_profits": ("unknown", 0.0)})
-
+                                  future_predictions=future_predictions)
 
 
 @app.route("/graph.html")
@@ -639,11 +704,11 @@ def monthly():
     result = "<p>Suggestions will appear here...</p>"
 
     # Define allowed variables for monthly diagnosis input
-    allowed_vars = ["season", "sales", "pricing"] # Added more variables for demonstration
+    allowed_vars = ["season", "sales", "pricing", "economy", "competition", "stocking"] 
     options = {}
 
     # Populate options for dropdowns based on model's CPDs
-    for cpd in model.get_cpds():
+    for cpd in Engine.model.get_cpds():
         if cpd.variable in allowed_vars:
             options[cpd.variable] = cpd.state_names[cpd.variable]
 
@@ -651,8 +716,8 @@ def monthly():
         # Collect evidence from form submission
         evidence = {k: v.lower() for k, v in request.form.items() if k in allowed_vars}
 
-        # Perform causal diagnosis
-        state = causal_diagnosis(evidence)
+        # Perform causal diagnosis - Pass a dummy day (e.g., 1) and the form evidence
+        state = Engine.causal_diagnosis(1, evidence=evidence) 
         if not state:
             result = "<p style='color:red;'>❌ Invalid or unseen input values. Please select valid options for all fields.</p>"
         else:
@@ -700,11 +765,10 @@ def market():
         <tr><th>Variable</th><th>Probability Distribution</th></tr>
     """
     # Iterate through all nodes in the model to infer their most likely state
-    for node in model.nodes():
+    for node in Engine.model.nodes(): 
         try:
-            state_names = model.get_cpds(node).state_names[node]
-            # Query the marginal probability distribution for each variable
-            result = infer.query(variables=[node])
+            state_names = Engine.model.get_cpds(node).state_names[node] 
+            result = Engine.infer.query(variables=[node]) 
             
             # Start a nested unordered list for the probabilities
             prob_list_html = "<ul class='probability-list'>"
@@ -717,9 +781,13 @@ def market():
                 # Include a simple visual bar for probability
                 prob_list_html += f"""
                 <li>
-                    <span>{state_name.title()}</span>
-                    <span style="font-weight: bold;">{probability:.2f}</span>
-                    <div class="probability-bar" style="width: {(probability * 100):.0f}%;"></div>
+                    <span class="state-value">{state_name.title()}</span>
+                    <div class="probability-display">
+                        <span class="probability-number">{probability:.2f}</span>
+                        <div class="probability-bar-track">
+                            <div class="probability-bar" style="width: {(probability * 100):.0f}%;"></div>
+                        </div>
+                    </div>
                 </li>
                 """
             prob_list_html += "</ul>"
@@ -734,21 +802,18 @@ def market():
 # ------------------- Training Configuration -------------------
 @app.route("/training", methods=["GET", "POST"])
 def training():
-    global model # Declare model as global to modify it
     message = ""
     if request.method == "POST":
         # Get selected training period (though compute_new_cpt currently doesn't use it)
         selected = request.form.get("period", "last 6 months")
         try:
             # Recompute CPTs and save the updated model
-            # Assuming compute_new_cpt and save_model are defined in Engine.py
-            from Engine import compute_new_cpt, save_model
-            model = compute_new_cpt()
-            save_model(model)
+            Engine.model = Engine.compute_new_cpt() 
+            Engine.save_model(Engine.model) 
             message = f"<p style='color:green;'>✅ Model successfully retrained using data from <b>{selected}</b>.</p>"
         except Exception as e:
             message = f"<p style='color:red;'>❌ Error retraining model: {str(e)}. Please check the database connection and data.</p>"
-
+    
     content = f"""
     <form method='POST'>
         <h3>Select Data Range for Model Retraining</h3>
@@ -764,7 +829,4 @@ def training():
 
 # ------------------- Run App -------------------
 if __name__ == "__main__":
-    # Ensure the graph.html file is cleaned up on exit if needed, though not strictly necessary for this app
-    # if os.path.exists("graph.html"):
-    #     os.remove("graph.html")
     app.run(debug=True, port=5000)
