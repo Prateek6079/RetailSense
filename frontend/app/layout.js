@@ -18,11 +18,20 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en">
+      <body className="bg-zinc-950 text-zinc-100 min-h-screen">
+        <header className="border-b border-zinc-800">
+          {/* Navbar */}
+        </header>
+
+        <main className="max-w-7xl mx-auto px-6 py-8">
+          {children}
+        </main>
+
+        <footer className="border-t border-zinc-800 py-6 text-center text-zinc-400">
+          © 2026 sherencrypted
+        </footer>
+      </body>
     </html>
   );
 }
