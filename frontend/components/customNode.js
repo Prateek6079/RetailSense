@@ -10,7 +10,7 @@ export default function CustomNode({ data }) {
         color: "#fff",
         border: "2px solid #fff",
         borderRadius: 10,
-        width: 220,
+        width: 250,
         padding: 12,
         fontSize: 14,
       }}
@@ -18,6 +18,7 @@ export default function CustomNode({ data }) {
       {/* Title */}
       <div
         style={{
+          fontSize: 28,
           fontWeight: 700,
           textAlign: "center",
           marginBottom: 8,
@@ -35,12 +36,9 @@ export default function CustomNode({ data }) {
       />
 
       {/* Type */}
-      <div>
+      <div style={{ fontSize: 20}}>
         <strong>Type:</strong> {data.type}
       </div>
-
-      <div style={{ marginTop: 10 }}>
-        <strong>Labels</strong>
 
         {data.labels.map((label, index) => (
           <div
@@ -49,13 +47,14 @@ export default function CustomNode({ data }) {
               display: "flex",
               justifyContent: "space-between",
               marginTop: 4,
+              fontSize: 20,
             }}
           >
             <span>{label.name}</span>
             <span>{label.probability}%</span>
           </div>
         ))}
-      </div>
+
         <Handle type="source" position={Position.Top} id="top" />
         <Handle type="source" position={Position.Left} id="left" />
         <Handle type="source" position={Position.Right} id="right" />

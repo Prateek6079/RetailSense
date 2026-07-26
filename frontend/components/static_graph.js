@@ -198,14 +198,12 @@ const edges = [
       sourceHandle: "left",
       target: "Sales",
       targetHandle: "top",
-      style: edgeStyle,
     },
     {
       id: "2",
       source: "Profit",
       sourceHandle: "bottom",
       target: "Pricing",
-      style: edgeStyle,
     },
     {
       id: "3",
@@ -213,7 +211,6 @@ const edges = [
       sourceHandle: "right",
       target: "Costs",
       targetHandle: "top",
-      style: edgeStyle,
     },
     {
       id: "4",
@@ -221,7 +218,6 @@ const edges = [
       sourceHandle: "right",
       target: "Strategic Levers",
       targetHandle: "left",
-      style: edgeStyle,
     },
     {
       id: "5",
@@ -229,7 +225,6 @@ const edges = [
       sourceHandle: "left",
       target: "External Factors",
       targetHandle: "top",
-      style: edgeStyle,
     },
     {
       id: "6",
@@ -237,7 +232,6 @@ const edges = [
       sourceHandle: "bottom",
       target: "Product Popularity",
       targetHandle: "top",
-      style: edgeStyle,
     },
     {
       id: "7",
@@ -245,7 +239,6 @@ const edges = [
       sourceHandle: "right",
       target: "Pricing",
       targetHandle: "left",
-      style: edgeStyle,
     },
     {
       id: "8",
@@ -253,7 +246,6 @@ const edges = [
       sourceHandle: "bottom",
       target: "Stocking",
       targetHandle: "top",
-      style: edgeStyle,
     },
     {
       id: "9",
@@ -261,21 +253,18 @@ const edges = [
       sourceHandle: "right",
       target: "Costs",
       targetHandle: "left",
-      style: edgeStyle,
     },
     {
       id: "10",
       source: "Costs",
       sourceHandle: "bottom",
       target: "Operational Efficiency",
-      style: edgeStyle,
     },
     {
       id: "11",
       source: "Costs",
       sourceHandle: "bottom",
       target: "Stocking",
-      style: edgeStyle,
     },
     {
       id: "12",
@@ -283,28 +272,24 @@ const edges = [
       sourceHandle: "bottom",
       target: "Product Popularity",
       targetHandle: "right",
-      style: edgeStyle,
     },
     {
       id: "13",
       source: "External Factors",
       sourceHandle: "bottom",
       target: "Season",
-      style: edgeStyle,
     },
     {
       id: "14",
       source: "External Factors",
       sourceHandle: "right",
       target: "Economy",
-      style: edgeStyle,
     },
     {
       id: "15",
       source: "External Factors",
       sourceHandle: "bottom",
       target: "Competition",
-      style: edgeStyle,
     },
   ];
 
@@ -313,6 +298,10 @@ export default function StaticGraph() {
     <ReactFlow
       nodes={nodes}
       edges={edges}
+      defaultEdgeOptions={{
+        type: "straight",
+        style: edgeStyle,
+      }}
       nodeTypes={nodeTypes}
       defaultViewport={{
         x: 400,
@@ -327,6 +316,7 @@ export default function StaticGraph() {
       nodesDraggable={false}
       nodesConnectable={false}
       elementsSelectable={false}
+      proOptions={{ hideAttribution: true }}
     />
   );
 }
