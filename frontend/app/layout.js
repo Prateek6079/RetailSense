@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Bebas_Neue } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 
@@ -10,6 +10,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const BebasNeue = Bebas_Neue({
+  variable: "--font-bebas-neue",
+  subsets: ["latin"],
+  weight: "400",
 });
 
 export const metadata = {
@@ -30,16 +36,32 @@ export default function RootLayout({ children }) {
       <body className="bg-zinc-950 text-zinc-100 min-h-screen">
         <header className="border-b border-zinc-800">
           <nav className="hidden bg-navy lg:block">
-        <ul className="mx-auto flex max-w-7xl items-center gap-1 px-6 text-sm font-medium text-cream/90">
-          {navLinks.map((link) => (
-            <li key={link.href}>
-              <Link href={link.href} className="block px-3 py-3 hover:text-[var(--gold)]">
-                {link.label}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+            <ul className="mx-auto flex max-w-7xl items-center gap-1 px-6 text-sm font-medium text-cream/90">
+              <li className="pr-10">
+                <h1 className={`${BebasNeue.className} text-4xl font-bold text-red dark:text-white`}> RetailSense </h1>
+              </li>
+            {navLinks.map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} className="block border-2
+                                              border-black
+                                              px-3
+                                              py-1
+                                              rounded-md
+                                              mt-4
+                                              mb-4
+                                              shadow-[0_10px_0_0_rgb(0,0,0)]
+                                              transition-all
+                                              duration-100
+                                              hover:translate-y-[3px]
+                                              hover:shadow-[0_7px_0_0_rgb(0,0,0)]
+                                              active:translate-y-[10px]
+                                              active:shadow-none">
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+            </ul>
+          </nav>
         </header>
 
         <main className="max-w-7xl mx-auto px-6 py-8">

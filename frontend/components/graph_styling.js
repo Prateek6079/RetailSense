@@ -15,5 +15,6 @@ export const nodeStyle = {
 export const edgeStyle = {
   stroke: "#4b5563",
   strokeWidth: 2,
+  type: "straight",
   /*animation: "blink 1s infinite", */
 };

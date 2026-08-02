@@ -1,11 +1,16 @@
 "use client";
-import { Background, ReactFlow } from "@xyflow/react";
+import { ReactFlow } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { nodeStyle, edgeStyle } from "./graph_styling";
 import CustomNode from "./customNode";
+import FlowEdge from "./flowEdge";
 
 const nodeTypes = {
   custom : CustomNode,
+};
+
+const edgeTypes = {
+  animated: FlowEdge,
 };
 
 
@@ -194,102 +199,132 @@ const nodes = [
 const edges = [
     {
       id: "1",
+      type: "animated",
       source: "Profit",
       sourceHandle: "left",
       target: "Sales",
       targetHandle: "top",
+      data: { speed: 100 },
     },
     {
       id: "2",
+      type: "animated",
       source: "Profit",
       sourceHandle: "bottom",
       target: "Pricing",
+      data: { speed: 100 },
     },
     {
       id: "3",
+      type: "animated",
       source: "Profit",
       sourceHandle: "right",
       target: "Costs",
       targetHandle: "top",
+      data: { speed: 100 },
     },
     {
       id: "4",
+      type: "animated",
       source: "Sales",
       sourceHandle: "right",
       target: "Strategic Levers",
       targetHandle: "left",
+      data: { speed: 100 },
     },
     {
       id: "5",
+      type: "animated",
       source: "Sales",
       sourceHandle: "left",
       target: "External Factors",
       targetHandle: "top",
+      data: { speed: 100 },
     },
     {
       id: "6",
+      type: "animated",
       source: "Sales",
       sourceHandle: "bottom",
       target: "Product Popularity",
       targetHandle: "top",
+      data: { speed: 100 },
     },
     {
       id: "7",
+      type: "animated",
       source: "Strategic Levers",
       sourceHandle: "right",
       target: "Pricing",
       targetHandle: "left",
+      data: { speed: 100 },
     },
     {
       id: "8",
+      type: "animated",
       source: "Strategic Levers",
       sourceHandle: "bottom",
       target: "Stocking",
       targetHandle: "top",
+      data: { speed: 100 },
     },
     {
       id: "9",
+      type: "animated",
       source: "Pricing",
       sourceHandle: "right",
       target: "Costs",
       targetHandle: "left",
+      data: { speed: 100 },
     },
     {
       id: "10",
+      type: "animated",
       source: "Costs",
       sourceHandle: "bottom",
       target: "Operational Efficiency",
+      data: { speed: 100 },
     },
     {
       id: "11",
+      type: "animated",
       source: "Costs",
       sourceHandle: "bottom",
       target: "Stocking",
+      data: { speed: 100 },
     },
     {
       id: "12",
+      type: "animated",
       source: "Stocking",
       sourceHandle: "bottom",
       target: "Product Popularity",
       targetHandle: "right",
+      data: { speed: 100 },
     },
     {
       id: "13",
+      type: "animated",
       source: "External Factors",
       sourceHandle: "bottom",
       target: "Season",
+      data: { speed: 100 },
     },
     {
       id: "14",
+      type: "animated",
       source: "External Factors",
       sourceHandle: "right",
       target: "Economy",
+      data: { speed: 100 },
     },
     {
       id: "15",
+      type: "animated",
       source: "External Factors",
       sourceHandle: "bottom",
       target: "Competition",
+      data: { speed: 100 }, // slower speed for this edge
     },
   ];
 
@@ -303,6 +338,7 @@ export default function StaticGraph() {
         style: edgeStyle,
       }}
       nodeTypes={nodeTypes}
+      edgeTypes={edgeTypes}
       defaultViewport={{
         x: 400,
         y: 60,
@@ -316,6 +352,7 @@ export default function StaticGraph() {
       nodesDraggable={false}
       nodesConnectable={false}
       elementsSelectable={false}
+      preventScrolling={false}
       proOptions={{ hideAttribution: true }}
     />
   );
