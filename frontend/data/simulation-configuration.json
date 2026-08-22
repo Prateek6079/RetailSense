@@ -1,0 +1,52 @@
+{
+  "variables": [
+    {
+      "name": "Profit",
+      "labels": ["Increase", "Stable", "Decrease"]
+    },
+    {
+      "name": "Sales",
+      "labels": ["Increase", "Stable", "Decrease"]
+    },
+    {
+      "name": "Pricing",
+      "labels": ["Premium", "Competitive", "Discounted"]
+    },
+    {
+      "name": "Costs",
+      "labels": ["Rising", "Stable", "Falling"]
+    },
+    {
+      "name": "Strategic Levers",
+      "labels": ["Activated", "Balanced", "Limited"]
+    },
+    {
+      "name": "Stocking",
+      "labels": ["Overstocked", "Optimal", "Understocked"]
+    },
+    {
+      "name": "Operational Efficiency",
+      "labels": ["Efficient", "Steady", "Inefficient"]
+    },
+    {
+      "name": "External Factors",
+      "labels": ["Favorable", "Neutral", "Unfavorable"]
+    },
+    {
+      "name": "Competition",
+      "labels": ["Weak", "Moderate", "Strong"]
+    },
+    {
+      "name": "Economy",
+      "labels": ["Growth", "Stable", "Recession"]
+    },
+    {
+      "name": "Season",
+      "labels": ["Peak", "Regular", "Off-Peak"]
+    },
+    {
+      "name": "Product Popularity",
+      "labels": ["Popular", "Steady", "Unpopular"]
+    }
+  ]
+}

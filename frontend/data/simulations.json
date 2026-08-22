@@ -1,0 +1,39 @@
+[
+  {
+    "id": "2d29b3cc-0935-4e5f-b81a-3c21feadf51d",
+    "title": "SIMULATION 1",
+    "description": "A new simulation ready for configuration.",
+    "configuration": {
+      "Profit": "Stable",
+      "Sales": "Stable",
+      "Pricing": "Premium",
+      "Costs": "Falling",
+      "Strategic Levers": "Balanced",
+      "Stocking": "Overstocked",
+      "Operational Efficiency": "Efficient",
+      "External Factors": "Favorable",
+      "Competition": "Moderate",
+      "Economy": "Stable",
+      "Season": "Off-Peak",
+      "Product Popularity": "Steady"
+    }
+  },
+  {
+    "id": "2d01d534-849e-4d38-98ab-cc19fc7d2294",
+    "title": "NEW SIMULATION 2",
+    "description": "A new simulation ready for configuration.",
+    "configuration": null
+  },
+  {
+    "id": "419adbe5-de0f-43e6-9bcc-dd887aa616eb",
+    "title": "NEW SIMULATION 3",
+    "description": "A new simulation ready for configuration.",
+    "configuration": null
+  },
+  {
+    "id": "3d9d1128-3176-4d77-9395-6930a50d577c",
+    "title": "NEW SIMULATION 4",
+    "description": "A new simulation ready for configuration.",
+    "configuration": null
+  }
+]

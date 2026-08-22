@@ -25,7 +25,7 @@ export const metadata = {
 
 const navLinks = [
   { label: "Probability Graph", href: "/graph" },
-  { label: "Monthly Analysis", href: "/monthly_analysis" },
+  { label: "Simulator", href: "/simulator" },
   { label: "Market Trends", href: "/trends" },
   { label: "Training Configurations", href: "/config" },
 ];
@@ -42,21 +42,33 @@ export default function RootLayout({ children }) {
               </li>
             {navLinks.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className="block border-2
-                                              border-black
-                                              px-3
-                                              py-1
-                                              rounded-md
-                                              mt-4
-                                              mb-4
-                                              shadow-[0_10px_0_0_rgb(0,0,0)]
-                                              transition-all
-                                              duration-100
-                                              hover:translate-y-[3px]
-                                              hover:shadow-[0_7px_0_0_rgb(0,0,0)]
-                                              active:translate-y-[10px]
-                                              active:shadow-none">
-                  {link.label}
+                <Link
+                  href={link.href}
+                  className="
+                    group
+                    block
+                    border-2 border-black
+                    rounded-md
+                    mt-4 mb-4
+                    shadow-[0_10px_0_0_rgb(0,0,0)]
+                    transition-shadow
+                    duration-100
+                    hover:shadow-[0_7px_0_0_rgb(0,0,0)]
+                    active:shadow-none
+                  "
+                >
+                  <span
+                    className="
+                      block
+                      px-3 py-1
+                      transition-transform
+                      duration-100
+                      group-hover:translate-y-[3px]
+                      group-active:translate-y-[10px]
+                    "
+                  >
+                    {link.label}
+                  </span>
                 </Link>
               </li>
             ))}
