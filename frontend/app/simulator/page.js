@@ -71,7 +71,7 @@ export default function analysis() {
             </svg>
         </button>
     </div>
-    <div className="w-full h-full">
+    <div className="w-full">
         <BouncyList items={simulations} />
     </div>
     </div>

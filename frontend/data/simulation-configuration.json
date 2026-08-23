@@ -2,51 +2,51 @@
   "variables": [
     {
       "name": "Profit",
-      "labels": ["Increase", "Stable", "Decrease"]
+      "labels": ["Speculate", "Increase", "Stable", "Decrease"]
     },
     {
       "name": "Sales",
-      "labels": ["Increase", "Stable", "Decrease"]
+      "labels": ["Speculate", "Increase", "Stable", "Decrease"]
     },
     {
       "name": "Pricing",
-      "labels": ["Premium", "Competitive", "Discounted"]
+      "labels": ["Speculate", "Premium", "Competitive", "Discounted"]
     },
     {
       "name": "Costs",
-      "labels": ["Rising", "Stable", "Falling"]
+      "labels": ["Speculate", "Rising", "Stable", "Falling"]
     },
     {
       "name": "Strategic Levers",
-      "labels": ["Activated", "Balanced", "Limited"]
+      "labels": ["Speculate", "Activated", "Balanced", "Limited"]
     },
     {
       "name": "Stocking",
-      "labels": ["Overstocked", "Optimal", "Understocked"]
+      "labels": ["Speculate", "Overstocked", "Optimal", "Understocked"]
     },
     {
       "name": "Operational Efficiency",
-      "labels": ["Efficient", "Steady", "Inefficient"]
+      "labels": ["Speculate", "Efficient", "Steady", "Inefficient"]
     },
     {
       "name": "External Factors",
-      "labels": ["Favorable", "Neutral", "Unfavorable"]
+      "labels": ["Speculate", "Favorable", "Neutral", "Unfavorable"]
     },
     {
       "name": "Competition",
-      "labels": ["Weak", "Moderate", "Strong"]
+      "labels": ["Speculate", "Weak", "Moderate", "Strong"]
     },
     {
       "name": "Economy",
-      "labels": ["Growth", "Stable", "Recession"]
+      "labels": ["Speculate", "Growth", "Stable", "Recession"]
     },
     {
       "name": "Season",
-      "labels": ["Peak", "Regular", "Off-Peak"]
+      "labels": ["Speculate", "Peak", "Regular", "Off-Peak"]
     },
     {
       "name": "Product Popularity",
-      "labels": ["Popular", "Steady", "Unpopular"]
+      "labels": ["Speculate", "Popular", "Steady", "Unpopular"]
     }
   ]
 }

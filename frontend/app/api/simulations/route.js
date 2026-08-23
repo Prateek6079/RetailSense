@@ -47,7 +47,7 @@ export async function DELETE(request) {
 }
 
 export async function PATCH(request) {
-  const { id, name, configuration } = await request.json();
+  const { id, name, configuration, result, score } = await request.json();
   const simulations = await getSimulations();
   const simulation = simulations.find((item) => item.id === id);
 
@@ -59,6 +59,8 @@ export async function PATCH(request) {
     simulation.title = name.trim();
   }
   simulation.configuration = configuration;
+  if (result !== undefined) simulation.result = result;
+  if (score !== undefined) simulation.score = score;
   await writeFile(simulationsPath, `${JSON.stringify(simulations, null, 2)}\n`);
 
   return Response.json(simulation);

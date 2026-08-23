@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   ChartNoAxesCombined,
   ChevronDown,
+  Play,
   Settings2,
   Trash2,
   X,
@@ -18,6 +19,7 @@ import {
 } from "react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import SimulationResults from "./simulationResults";
 
 export function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -128,8 +130,10 @@ function BouncyAccordionRow({
   onToggle,
   onConfigure,
   onDelete,
+  onRunSimulation,
+  isRunning,
+  simulationResult,
 }) {
-  const FIXED_CONTENT_HEIGHT = 180;
   const contentRef = useRef(null);
   const [contentHeight, setContentHeight] = useState(0);
 
@@ -247,7 +251,7 @@ function BouncyAccordionRow({
           aria-hidden={!open}
           initial={false}
           animate={{
-            height: open && item.description ? FIXED_CONTENT_HEIGHT : 0,
+            height: open && item.description ? contentHeight : 0,
           }}
           transition={
             reduce
@@ -268,12 +272,28 @@ function BouncyAccordionRow({
           >
             <div
               className={cn(
-                "text-[15px] leading-6 text-muted-foreground",
+                "flex items-center justify-between gap-4 text-[15px] leading-6 text-muted-foreground",
                 classNames?.description,
               )}
             >
-              {item.description}
+              <span>
+                {item.configuration === null
+                  ? "Configure simulation parameters to run the simulation."
+                  : item.description}
+              </span>
+              {item.configuration !== null && (
+                <button
+                  type="button"
+                  onClick={onRunSimulation}
+                  disabled={isRunning}
+                  className="inline-flex shrink-0 items-center gap-2 rounded-md border-2 border-white bg-black px-3 py-2 text-sm font-semibold text-white shadow-[3px_3px_0_0_white] transition-all hover:translate-x-px hover:translate-y-px hover:bg-white hover:text-black hover:shadow-[1px_1px_0_0_white] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:cursor-wait disabled:opacity-60"
+                >
+                  <Play aria-hidden="true" className="h-3.5 w-3.5" />
+                  {isRunning ? "Running..." : "Run simulation"}
+                </button>
+              )}
             </div>
+            <SimulationResults result={simulationResult} />
           </motion.div>
         </motion.div>
       </motion.div>
@@ -296,6 +316,22 @@ export function BouncyAccordion({
   const [configurationName, setConfigurationName] = useState("");
   const [configurationVariables, setConfigurationVariables] = useState([]);
   const [configuration, setConfiguration] = useState({});
+  const [runningSimulationId, setRunningSimulationId] = useState(null);
+  const [simulationResults, setSimulationResults] = useState(() =>
+    Object.fromEntries(
+      items
+        .filter((item) => item.result)
+        .map((item) => [
+          item.id,
+          {
+            simulationId: item.id,
+            configuration: item.configuration,
+            variables: item.result,
+            score: item.score,
+          },
+        ]),
+    ),
+  );
   const deletedItemIds = useRef(new Set());
 
   useEffect(() => {
@@ -310,6 +346,22 @@ export function BouncyAccordion({
     setVisibleItems(
       items.filter((item) => !deletedItemIds.current.has(item.id)),
     );
+    setSimulationResults((current) => ({
+      ...current,
+      ...Object.fromEntries(
+        items
+          .filter((item) => item.result)
+          .map((item) => [
+            item.id,
+            {
+              simulationId: item.id,
+              configuration: item.configuration,
+              variables: item.result,
+              score: item.score,
+            },
+          ]),
+      ),
+    }));
   }, [items]);
 
   useEffect(() => {
@@ -357,13 +409,12 @@ export function BouncyAccordion({
     setConfiguredItem(item);
     setConfigurationName(item.title);
     setConfiguration(
-      item.configuration ??
-        Object.fromEntries(
-          configurationVariables.map((variable) => [
-            variable.name,
-            variable.labels[0] ?? "",
-          ]),
-        ),
+      Object.fromEntries(
+        configurationVariables.map((variable) => [
+          variable.name,
+          item.configuration?.[variable.name] ?? variable.labels[0] ?? "",
+        ]),
+      ),
     );
   }, [configurationVariables]);
 
@@ -379,6 +430,8 @@ export function BouncyAccordion({
         id: configuredItem.id,
         name: configurationName,
         configuration,
+        result: null,
+        score: null,
       }),
     });
 
@@ -390,8 +443,68 @@ export function BouncyAccordion({
         item.id === updatedSimulation.id ? updatedSimulation : item,
       ),
     );
+    setSimulationResults((current) => {
+      const next = { ...current };
+      delete next[updatedSimulation.id];
+      return next;
+    });
     setConfiguredItem(null);
   }, [configuration, configurationName, configuredItem]);
+
+  const runSimulation = useCallback(async (item) => {
+    if (item.configuration === null || runningSimulationId) return;
+
+    setRunningSimulationId(item.id);
+
+    const result = await new Promise((resolve) => {
+      setTimeout(() => {
+        const variables = Object.fromEntries(
+          configurationVariables.map((variable) => {
+            const weights = variable.labels.map(() => Math.random());
+            const total = weights.reduce((sum, weight) => sum + weight, 0);
+
+            return [
+              variable.name,
+              Object.fromEntries(
+                variable.labels.map((label, index) => [
+                  label,
+                  Number((weights[index] / total).toFixed(3)),
+                ]),
+              ),
+            ];
+          }),
+        );
+
+        resolve({
+          simulationId: item.id,
+          configuration: item.configuration,
+          variables,
+          score: configurationVariables.length
+            ? configurationVariables.reduce(
+                (sum, variable) =>
+                  sum + (variables[variable.name]?.[item.configuration[variable.name]] || 0),
+                0,
+              ) / configurationVariables.length
+            : 0,
+        });
+      }, 500);
+    });
+
+    await fetch("/api/simulations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: item.id,
+        configuration: item.configuration,
+        result: result.variables,
+        score: result.score,
+      }),
+    });
+
+    setSimulationResults((current) => ({ ...current, [item.id]: result }));
+    setRunningSimulationId(null);
+    return result;
+  }, [configurationVariables, runningSimulationId]);
 
   return (
     <div className={cn("w-full", className, classNames?.root)}>
@@ -423,6 +536,9 @@ export function BouncyAccordion({
             onToggle={() => toggleItem(item.id)}
             onConfigure={() => configureItem(item)}
             onDelete={() => deleteItem(item.id)}
+            onRunSimulation={() => runSimulation(item)}
+            isRunning={runningSimulationId === item.id}
+            simulationResult={simulationResults[item.id]}
           />
         );
       })}
@@ -507,13 +623,13 @@ export function BouncyAccordion({
               <button
                 type="button"
                 onClick={() => setConfiguredItem(null)}
-                className="rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="rounded-md border-2 border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 shadow-[3px_3px_0_0_#a3a3a3] transition-all hover:translate-x-px hover:translate-y-px hover:bg-neutral-100 hover:shadow-[1px_1px_0_0_#a3a3a3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-400 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none dark:border-neutral-500 dark:text-neutral-100 dark:shadow-[3px_3px_0_0_#737373] dark:hover:bg-neutral-800"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+                className="rounded-md border-2 border-black bg-black px-4 py-2 text-sm font-semibold text-white shadow-[3px_3px_0_0_#a3a3a3] transition-all hover:translate-x-px hover:translate-y-px hover:bg-neutral-800 hover:shadow-[1px_1px_0_0_#a3a3a3] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black active:translate-x-[3px] active:translate-y-[3px] active:shadow-none dark:border-white dark:bg-white dark:text-black dark:shadow-[3px_3px_0_0_#737373] dark:hover:bg-neutral-200 dark:focus-visible:outline-white"
               >
                 Save configuration
               </button>
@@ -526,11 +642,5 @@ export function BouncyAccordion({
 }
 
 export default function BouncyAccordionPreview({ items = [] }) {
-  return (
-    <div className="flex min-h-96 w-full items-center justify-center">
-      <div className="h-[480px] w-full">
-        <BouncyAccordion items={items} />
-      </div>
-    </div>
-  );
+  return <div className="min-h-96 w-full"><BouncyAccordion items={items} /></div>;
 }

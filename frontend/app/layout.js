@@ -33,7 +33,7 @@ const navLinks = [
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="bg-zinc-950 text-zinc-100 min-h-screen">
+      <body className="flex min-h-screen flex-col bg-zinc-950 text-zinc-100">
         <header className="border-b border-zinc-800">
           <nav className="hidden bg-navy lg:block">
             <ul className="mx-auto flex max-w-7xl items-center gap-1 px-6 text-sm font-medium text-cream/90">
@@ -76,7 +76,7 @@ export default function RootLayout({ children }) {
           </nav>
         </header>
 
-        <main className="max-w-7xl mx-auto px-6 py-8">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">
           {children}
         </main>
 

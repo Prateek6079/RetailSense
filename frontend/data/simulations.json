@@ -1,39 +1,190 @@
 [
   {
-    "id": "2d29b3cc-0935-4e5f-b81a-3c21feadf51d",
-    "title": "SIMULATION 1",
+    "id": "a8f6a242-b0d3-46be-a566-ec6e6c542482",
+    "title": "NEw Sim Final Test",
     "description": "A new simulation ready for configuration.",
     "configuration": {
-      "Profit": "Stable",
-      "Sales": "Stable",
-      "Pricing": "Premium",
+      "Profit": "Speculate",
+      "Sales": "Speculate",
+      "Pricing": "Speculate",
       "Costs": "Falling",
       "Strategic Levers": "Balanced",
-      "Stocking": "Overstocked",
-      "Operational Efficiency": "Efficient",
-      "External Factors": "Favorable",
+      "Stocking": "Speculate",
+      "Operational Efficiency": "Speculate",
+      "External Factors": "Speculate",
       "Competition": "Moderate",
-      "Economy": "Stable",
-      "Season": "Off-Peak",
-      "Product Popularity": "Steady"
-    }
+      "Economy": "Speculate",
+      "Season": "Speculate",
+      "Product Popularity": "Speculate"
+    },
+    "result": {
+      "Profit": {
+        "Speculate": 0.243,
+        "Increase": 0.226,
+        "Stable": 0.155,
+        "Decrease": 0.377
+      },
+      "Sales": {
+        "Speculate": 0.141,
+        "Increase": 0.506,
+        "Stable": 0.167,
+        "Decrease": 0.185
+      },
+      "Pricing": {
+        "Speculate": 0.215,
+        "Premium": 0.429,
+        "Competitive": 0.083,
+        "Discounted": 0.272
+      },
+      "Costs": {
+        "Speculate": 0.039,
+        "Rising": 0.34,
+        "Stable": 0.333,
+        "Falling": 0.288
+      },
+      "Strategic Levers": {
+        "Speculate": 0.226,
+        "Activated": 0.274,
+        "Balanced": 0.262,
+        "Limited": 0.237
+      },
+      "Stocking": {
+        "Speculate": 0.097,
+        "Overstocked": 0.26,
+        "Optimal": 0.35,
+        "Understocked": 0.293
+      },
+      "Operational Efficiency": {
+        "Speculate": 0.016,
+        "Efficient": 0.302,
+        "Steady": 0.262,
+        "Inefficient": 0.42
+      },
+      "External Factors": {
+        "Speculate": 0.389,
+        "Favorable": 0.334,
+        "Neutral": 0.275,
+        "Unfavorable": 0.002
+      },
+      "Competition": {
+        "Speculate": 0.155,
+        "Weak": 0.441,
+        "Moderate": 0.113,
+        "Strong": 0.292
+      },
+      "Economy": {
+        "Speculate": 0.263,
+        "Growth": 0.184,
+        "Stable": 0.322,
+        "Recession": 0.23
+      },
+      "Season": {
+        "Speculate": 0.261,
+        "Peak": 0.302,
+        "Regular": 0.26,
+        "Off-Peak": 0.178
+      },
+      "Product Popularity": {
+        "Speculate": 0.075,
+        "Popular": 0.308,
+        "Steady": 0.427,
+        "Unpopular": 0.189
+      }
+    },
+    "score": 0.1969166666666667
   },
   {
-    "id": "2d01d534-849e-4d38-98ab-cc19fc7d2294",
-    "title": "NEW SIMULATION 2",
+    "id": "75fd8eff-3540-4869-b269-2b26bb0b0815",
+    "title": "New Sim Final Test 2",
     "description": "A new simulation ready for configuration.",
-    "configuration": null
-  },
-  {
-    "id": "419adbe5-de0f-43e6-9bcc-dd887aa616eb",
-    "title": "NEW SIMULATION 3",
-    "description": "A new simulation ready for configuration.",
-    "configuration": null
-  },
-  {
-    "id": "3d9d1128-3176-4d77-9395-6930a50d577c",
-    "title": "NEW SIMULATION 4",
-    "description": "A new simulation ready for configuration.",
-    "configuration": null
+    "configuration": {
+      "Profit": "Speculate",
+      "Sales": "Speculate",
+      "Pricing": "Speculate",
+      "Costs": "Falling",
+      "Strategic Levers": "Speculate",
+      "Stocking": "Understocked",
+      "Operational Efficiency": "Speculate",
+      "External Factors": "Speculate",
+      "Competition": "Weak",
+      "Economy": "Speculate",
+      "Season": "Speculate",
+      "Product Popularity": "Unpopular"
+    },
+    "result": {
+      "Profit": {
+        "Speculate": 0.229,
+        "Increase": 0.218,
+        "Stable": 0.278,
+        "Decrease": 0.275
+      },
+      "Sales": {
+        "Speculate": 0.409,
+        "Increase": 0.195,
+        "Stable": 0.393,
+        "Decrease": 0.002
+      },
+      "Pricing": {
+        "Speculate": 0.297,
+        "Premium": 0.281,
+        "Competitive": 0.294,
+        "Discounted": 0.128
+      },
+      "Costs": {
+        "Speculate": 0.288,
+        "Rising": 0.327,
+        "Stable": 0.032,
+        "Falling": 0.353
+      },
+      "Strategic Levers": {
+        "Speculate": 0.602,
+        "Activated": 0.021,
+        "Balanced": 0.214,
+        "Limited": 0.163
+      },
+      "Stocking": {
+        "Speculate": 0.249,
+        "Overstocked": 0.212,
+        "Optimal": 0.434,
+        "Understocked": 0.105
+      },
+      "Operational Efficiency": {
+        "Speculate": 0.398,
+        "Efficient": 0.279,
+        "Steady": 0.029,
+        "Inefficient": 0.295
+      },
+      "External Factors": {
+        "Speculate": 0.294,
+        "Favorable": 0.366,
+        "Neutral": 0.125,
+        "Unfavorable": 0.215
+      },
+      "Competition": {
+        "Speculate": 0.082,
+        "Weak": 0.052,
+        "Moderate": 0.444,
+        "Strong": 0.422
+      },
+      "Economy": {
+        "Speculate": 0.039,
+        "Growth": 0.383,
+        "Stable": 0.478,
+        "Recession": 0.1
+      },
+      "Season": {
+        "Speculate": 0.136,
+        "Peak": 0.443,
+        "Regular": 0.144,
+        "Off-Peak": 0.278
+      },
+      "Product Popularity": {
+        "Speculate": 0.269,
+        "Popular": 0.391,
+        "Steady": 0.255,
+        "Unpopular": 0.085
+      }
+    },
+    "score": 0.2499166666666667
   }
 ]
